@@ -3,7 +3,7 @@
  * Plugin Name: WooCommerce XML Feed Importer
  * Plugin URI: https://github.com/wynandapexit/woocommerce-xml-feed-importer-new
  * Description: Import XML and CSV product feeds into WooCommerce with manual trigger buttons for on-demand imports.
- * Version: 2.0.1
+ * Version: 2.0.2
  * Author: Wynand Apexit
  * Author URI: https://github.com/wynandapexit
  * License: GPL-2.0+
@@ -19,7 +19,7 @@ if (!defined('ABSPATH')) {
 }
 
 if (!defined('WPFI_VERSION')) {
-    define('WPFI_VERSION', '2.0.1');
+    define('WPFI_VERSION', '2.0.2');
     define('WPFI_PATH', plugin_dir_path(__FILE__));
     define('WPFI_URL', plugin_dir_url(__FILE__));
 }

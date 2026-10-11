@@ -20,11 +20,25 @@ final class WPFI_Admin {
         add_action('admin_post_wpfi_delete_feed', [$this, 'delete']);
         add_action('admin_post_wpfi_trigger_feed', [$this, 'trigger']);
         add_action('wp_ajax_wpfi_trigger_feed', [$this, 'ajax_trigger']);
+        add_action('admin_enqueue_scripts', [$this, 'enqueue_scripts']);
     }
 
     public function menu() {
         add_submenu_page('woocommerce', 'XML Feed Importer', 'XML Feed Importer', 'manage_woocommerce', 'wpfi-feeds', [$this, 'page']);
         add_submenu_page('woocommerce', 'XML Feed Importer Logs', 'XML Feed Importer Logs', 'manage_woocommerce', 'wpfi-logs', [$this, 'logs_page']);
+    }
+
+    public function enqueue_scripts($hook) {
+        if (strpos($hook, 'wpfi') === false) {
+            return;
+        }
+
+        wp_register_script('wpfi-admin', WPFI_URL . 'assets/admin.js', [], WPFI_VERSION, true);
+        wp_localize_script('wpfi-admin', 'wpfiAdmin', [
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('wpfi_trigger_nonce'),
+        ]);
+        wp_enqueue_script('wpfi-admin');
     }
 
     private function can() {
@@ -152,7 +166,7 @@ final class WPFI_Admin {
         echo '<div class="wrap">';
         echo '<h1>XML Feed Importer</h1>';
         echo '<p><a class="button button-primary" href="' . esc_url($this->url(['action' => 'new'])) . '">Add Feed</a></p>';
-        echo '<style>.feed-table { width: 100%; border-collapse: collapse; margin-top: 20px; } .feed-table th, .feed-table td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; } .feed-table th { background-color: #f5f5f5; font-weight: bold; } .feed-table tr:hover { background-color: #f9f9f9; } .feed-actions { white-space: nowrap; } .trigger-btn { background-color: #0073aa; color: white; border-radius: 3px; cursor: pointer; border: none; padding: 5px 10px; } .trigger-btn:hover { background-color: #005a87; } .feed-status { font-weight: bold; padding: 5px 10px; border-radius: 3px; } .status-enabled { background-color: #d4edda; color: #155724; } .status-disabled { background-color: #f8d7da; color: #721c24; } .feed-details { font-size: 12px; color: #666; } .trigger-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; } .trigger-modal.active { display: flex; align-items: center; justify-content: center; } .modal-content { background: white; padding: 30px; border-radius: 5px; max-width: 500px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); } .modal-header { font-size: 18px; font-weight: bold; margin-bottom: 20px; } .modal-body { margin-bottom: 20px; } .modal-field { margin-bottom: 15px; } .modal-field label { display: block; font-weight: bold; margin-bottom: 5px; } .modal-field input, .modal-field textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 3px; box-sizing: border-box; } .modal-field textarea { resize: vertical; min-height: 80px; font-family: monospace; font-size: 12px; } .modal-footer { text-align: right; } .modal-footer button { margin-left: 10px; padding: 8px 15px; } .trigger-spinner { display: none; color: #0073aa; margin-right: 10px; } .trigger-status { display: none; margin-top: 15px; padding: 10px; border-radius: 3px; } .trigger-status.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; } .trigger-status.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; } </style>';
+        echo '<style>.feed-table { width: 100%; border-collapse: collapse; margin-top: 20px; } .feed-table th, .feed-table td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; } .feed-table th { background-color: #f5f5f5; font-weight: bold; } .feed-table tr:hover { background-color: #f9f9f9; } .feed-actions { white-space: nowrap; } .trigger-btn { background-color: #0073aa; color: white; border-radius: 3px; cursor: pointer; border: none; padding: 5px 10px; font-size: 13px; } .trigger-btn:hover { background-color: #005a87; } .trigger-btn:disabled { background-color: #999; cursor: not-allowed; } .feed-status { font-weight: bold; padding: 5px 10px; border-radius: 3px; } .status-enabled { background-color: #d4edda; color: #155724; } .status-disabled { background-color: #f8d7da; color: #721c24; } .feed-details { font-size: 12px; color: #666; } .trigger-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; } .trigger-modal.active { display: flex; align-items: center; justify-content: center; } .modal-content { background: white; padding: 30px; border-radius: 5px; max-width: 500px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); } .modal-header { font-size: 18px; font-weight: bold; margin-bottom: 20px; } .modal-body { margin-bottom: 20px; max-height: 400px; overflow-y: auto; } .modal-field { margin-bottom: 15px; } .modal-field label { display: block; font-weight: bold; margin-bottom: 5px; } .modal-field input, .modal-field textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 3px; box-sizing: border-box; } .modal-field textarea { resize: vertical; min-height: 80px; font-family: monospace; font-size: 12px; } .modal-footer { text-align: right; } .modal-footer button { margin-left: 10px; padding: 8px 15px; } .trigger-spinner { display: none; margin-right: 10px; } .trigger-status { display: none; margin-top: 15px; padding: 10px; border-radius: 3px; } .trigger-status.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; } .trigger-status.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; } </style>';
         echo '<table class="feed-table"><thead><tr><th>Feed Name</th><th>Configuration</th><th>Status</th><th>Frequency</th><th>Actions</th></tr></thead><tbody>';
 
         $feeds = $this->repo->all();
@@ -171,8 +185,8 @@ final class WPFI_Admin {
                 echo '<td>' . esc_html($feed['frequency'] ?? 'daily') . '</td>';
                 echo '<td class="feed-actions">';
                 echo '<a href="' . esc_url($this->url(['action' => 'edit', 'id' => $feed_id])) . '" class="button">Edit</a> ';
-                echo '<button class="button trigger-btn" onclick="openTriggerModal(\'' . esc_attr($feed_id) . '\', \'' . esc_attr($feed['name'] ?? '') . '\', ' . wp_json_encode($feed) . ')">Trigger</button> ';
-                echo '<a href="' . esc_url(wp_nonce_url($this->url(['action' => 'delete', 'id' => $feed_id]), 'wpfi_delete_' . $feed_id)) . '" class="button" onclick="return confirm(\'Delete this feed?\')">Delete</a>';
+                echo '<button class="button trigger-btn" type="button" data-feed-id="' . esc_attr($feed_id) . '" data-feed-name="' . esc_attr($feed['name'] ?? '') . '" data-feed-data="' . esc_attr(wp_json_encode($feed)) . '">Trigger</button> ';
+                echo '<a href="' . esc_url(wp_nonce_url($this->url(['action' => 'delete', 'id' => $feed_id]), 'wpfi_delete_' . $feed_id)) . '" class="button" onclick="return confirm(\'Delete this feed?\');">Delete</a>';
                 echo '</td>';
                 echo '</tr>';
             }
@@ -181,7 +195,6 @@ final class WPFI_Admin {
         echo '</tbody></table>';
         $this->render_trigger_modal();
         echo '</div>';
-        $this->render_trigger_script();
     }
 
     private function render_trigger_modal() {
@@ -232,8 +245,8 @@ final class WPFI_Admin {
                     <div id="triggerStatus" class="trigger-status"></div>
                 </div>
                 <div class="modal-footer">
-                    <button class="button" onclick="closeTriggerModal()" id="cancelBtn">Cancel</button>
-                    <button class="button button-primary" onclick="confirmTrigger()" id="startBtn">
+                    <button class="button" onclick="wpfiCloseTriggerModal()" id="cancelBtn">Cancel</button>
+                    <button class="button button-primary" onclick="wpfiConfirmTrigger()" id="startBtn" type="button">
                         <span class="trigger-spinner" id="triggerSpinner">⏳</span> Start Import
                     </button>
                 </div>
@@ -242,160 +255,34 @@ final class WPFI_Admin {
         <?php
     }
 
-    private function render_trigger_script() {
-        $nonce = wp_create_nonce('wpfi_trigger_nonce');
-        ?>
-        <script>
-        let currentFeedId = '';
-        const triggerNonce = '<?php echo esc_js($nonce); ?>';
-
-        function openTriggerModal(feedId, feedName, feedData) {
-            currentFeedId = feedId;
-            document.getElementById('modalFeedName').value = feedName || '';
-            document.getElementById('modalFeedUrl').value = feedData.url || '';
-            document.getElementById('modalFormat').value = (feedData.format || 'xml').toUpperCase();
-
-            const authType = feedData.auth?.type || 'none';
-            document.getElementById('modalAuthType').value = authType.charAt(0).toUpperCase() + authType.slice(1).replace('_', ' ');
-
-            const pathParams = feedData.auth?.path_params || {};
-            if (Object.keys(pathParams).length > 0) {
-                document.getElementById('modalPathParams').style.display = 'block';
-                let text = '';
-                for (const [key, value] of Object.entries(pathParams)) {
-                    text += key + ' = ' + value + '\n';
-                }
-                document.getElementById('modalPathParamsText').value = text.trim();
-            } else {
-                document.getElementById('modalPathParams').style.display = 'none';
-            }
-
-            const queryParams = feedData.auth?.query_params || {};
-            if (Object.keys(queryParams).length > 0) {
-                document.getElementById('modalQueryParams').style.display = 'block';
-                let text = '';
-                for (const [key, value] of Object.entries(queryParams)) {
-                    text += key + ' = ' + value + '\n';
-                }
-                document.getElementById('modalQueryParamsText').value = text.trim();
-            } else {
-                document.getElementById('modalQueryParams').style.display = 'none';
-            }
-
-            const mappings = feedData.map || {};
-            let mappingText = '';
-            for (const [key, value] of Object.entries(mappings)) {
-                mappingText += key + ' = ' + value + '\n';
-            }
-            document.getElementById('modalMappings').value = mappingText.trim();
-            document.getElementById('modalSkipZeroStock').checked = feedData.skip_zero_stock === 1;
-            document.getElementById('triggerStatus').style.display = 'none';
-            document.getElementById('triggerStatus').innerHTML = '';
-            document.getElementById('triggerModal').classList.add('active');
-        }
-
-        function closeTriggerModal() {
-            document.getElementById('triggerModal').classList.remove('active');
-            currentFeedId = '';
-        }
-
-        function confirmTrigger() {
-            if (!currentFeedId) {
-                alert('Feed ID not set');
-                return;
-            }
-
-            const startBtn = document.getElementById('startBtn');
-            const cancelBtn = document.getElementById('cancelBtn');
-            const spinner = document.getElementById('triggerSpinner');
-            const statusDiv = document.getElementById('triggerStatus');
-
-            startBtn.disabled = true;
-            cancelBtn.disabled = true;
-            spinner.style.display = 'inline';
-
-            console.log('Sending AJAX request with feed_id:', currentFeedId, 'nonce:', triggerNonce);
-
-            fetch(ajaxurl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: 'action=wpfi_trigger_feed&feed_id=' + encodeURIComponent(currentFeedId) + '&nonce=' + encodeURIComponent(triggerNonce)
-            })
-            .then((response) => {
-                console.log('Response status:', response.status);
-                return response.json();
-            })
-            .then((data) => {
-                console.log('Response data:', data);
-                spinner.style.display = 'none';
-                statusDiv.style.display = 'block';
-
-                if (data.success) {
-                    statusDiv.className = 'trigger-status success';
-                    statusDiv.innerHTML = '<strong>✓ Import Started</strong><br>' + (data.data?.message || 'Feed import completed successfully.');
-                    setTimeout(() => {
-                        closeTriggerModal();
-                        location.reload();
-                    }, 2000);
-                } else {
-                    statusDiv.className = 'trigger-status error';
-                    statusDiv.innerHTML = '<strong>✗ Import Failed</strong><br>' + (data.data?.message || 'An error occurred while starting the import.');
-                    startBtn.disabled = false;
-                    cancelBtn.disabled = false;
-                }
-            })
-            .catch((error) => {
-                console.error('Fetch error:', error);
-                spinner.style.display = 'none';
-                statusDiv.style.display = 'block';
-                statusDiv.className = 'trigger-status error';
-                statusDiv.innerHTML = '<strong>✗ Error</strong><br>Network error: ' + error.message;
-                startBtn.disabled = false;
-                cancelBtn.disabled = false;
-            });
-        }
-
-        document.getElementById('triggerModal').addEventListener('click', function (e) {
-            if (e.target === this) {
-                closeTriggerModal();
-            }
-        });
-        </script>
-        <?php
-    }
-
     public function ajax_trigger() {
-        // Security check first
+        // Verify nonce first
+        check_ajax_referer('wpfi_trigger_nonce', 'nonce', true);
+
+        // Security check
         if (!$this->can()) {
             wp_send_json_error(['message' => 'Permission denied']);
-            die;
-        }
-
-        // Verify nonce
-        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'wpfi_trigger_nonce')) {
-            error_log('WPFI: Nonce verification failed. POST nonce: ' . (isset($_POST['nonce']) ? $_POST['nonce'] : 'missing'));
-            wp_send_json_error(['message' => 'Security check failed']);
-            die;
+            wp_die();
         }
 
         // Get feed ID
         $feed_id = sanitize_text_field($_POST['feed_id'] ?? '');
         if (empty($feed_id)) {
             wp_send_json_error(['message' => 'Feed ID is required']);
-            die;
+            wp_die();
         }
 
         // Get feed
         $feed = $this->repo->get($feed_id);
         if (!$feed) {
             wp_send_json_error(['message' => 'Feed not found']);
-            die;
+            wp_die();
         }
 
         // Check if enabled
         if (empty($feed['enabled'])) {
             wp_send_json_error(['message' => 'Feed is disabled']);
-            die;
+            wp_die();
         }
 
         // Run import
@@ -405,24 +292,24 @@ final class WPFI_Admin {
             if (!is_callable([$this->importer, 'import'])) {
                 $this->log('Importer not callable', 'error', ['feed_id' => $feed_id]);
                 wp_send_json_error(['message' => 'Importer not available']);
-                die;
+                wp_die();
             }
 
             $result = $this->importer->import($feed);
             if ($result) {
                 $this->log('Feed import completed successfully', 'info', ['feed_id' => $feed_id]);
                 wp_send_json_success(['message' => 'Feed imported successfully']);
-                die;
+                wp_die();
             }
 
             $this->log('Feed import failed', 'error', ['feed_id' => $feed_id]);
             wp_send_json_error(['message' => 'Feed import failed. Check logs for details.']);
-            die;
+            wp_die();
         } catch (Exception $e) {
             $error_msg = 'Error triggering feed: ' . $e->getMessage();
             $this->log($error_msg, 'error', ['exception' => $e->getTraceAsString()]);
             wp_send_json_error(['message' => $error_msg]);
-            die;
+            wp_die();
         }
     }
 
