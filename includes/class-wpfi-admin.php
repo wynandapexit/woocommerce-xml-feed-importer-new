@@ -314,13 +314,19 @@ final class WPFI_Admin {
             cancelBtn.disabled = true;
             spinner.style.display = 'inline';
 
+            console.log('Sending AJAX request with feed_id:', currentFeedId, 'nonce:', triggerNonce);
+
             fetch(ajaxurl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: 'action=wpfi_trigger_feed&feed_id=' + encodeURIComponent(currentFeedId) + '&nonce=' + encodeURIComponent(triggerNonce)
             })
-            .then((response) => response.json())
+            .then((response) => {
+                console.log('Response status:', response.status);
+                return response.json();
+            })
             .then((data) => {
+                console.log('Response data:', data);
                 spinner.style.display = 'none';
                 statusDiv.style.display = 'block';
 
@@ -339,6 +345,7 @@ final class WPFI_Admin {
                 }
             })
             .catch((error) => {
+                console.error('Fetch error:', error);
                 spinner.style.display = 'none';
                 statusDiv.style.display = 'block';
                 statusDiv.className = 'trigger-status error';
@@ -358,48 +365,64 @@ final class WPFI_Admin {
     }
 
     public function ajax_trigger() {
+        // Security check first
         if (!$this->can()) {
             wp_send_json_error(['message' => 'Permission denied']);
+            die;
         }
 
+        // Verify nonce
         if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'wpfi_trigger_nonce')) {
+            error_log('WPFI: Nonce verification failed. POST nonce: ' . (isset($_POST['nonce']) ? $_POST['nonce'] : 'missing'));
             wp_send_json_error(['message' => 'Security check failed']);
+            die;
         }
 
+        // Get feed ID
         $feed_id = sanitize_text_field($_POST['feed_id'] ?? '');
         if (empty($feed_id)) {
             wp_send_json_error(['message' => 'Feed ID is required']);
+            die;
         }
 
+        // Get feed
         $feed = $this->repo->get($feed_id);
         if (!$feed) {
             wp_send_json_error(['message' => 'Feed not found']);
+            die;
         }
 
+        // Check if enabled
         if (empty($feed['enabled'])) {
             wp_send_json_error(['message' => 'Feed is disabled']);
+            die;
         }
 
+        // Run import
         try {
-            $this->log("Trigger feed via AJAX", 'info', ['feed_id' => $feed_id, 'feed_name' => $feed['name']]);
+            $this->log('Trigger feed via AJAX', 'info', ['feed_id' => $feed_id, 'feed_name' => $feed['name']]);
 
             if (!is_callable([$this->importer, 'import'])) {
                 $this->log('Importer not callable', 'error', ['feed_id' => $feed_id]);
-                wp_send_json_error(['message' => 'Importer error']);
+                wp_send_json_error(['message' => 'Importer not available']);
+                die;
             }
 
             $result = $this->importer->import($feed);
             if ($result) {
                 $this->log('Feed import completed successfully', 'info', ['feed_id' => $feed_id]);
-                wp_send_json_success(['message' => 'Feed import completed successfully']);
+                wp_send_json_success(['message' => 'Feed imported successfully']);
+                die;
             }
 
             $this->log('Feed import failed', 'error', ['feed_id' => $feed_id]);
             wp_send_json_error(['message' => 'Feed import failed. Check logs for details.']);
+            die;
         } catch (Exception $e) {
             $error_msg = 'Error triggering feed: ' . $e->getMessage();
             $this->log($error_msg, 'error', ['exception' => $e->getTraceAsString()]);
             wp_send_json_error(['message' => $error_msg]);
+            die;
         }
     }
 
